@@ -1,88 +1,87 @@
-import React, { useState } from 'react';
-import { Row, Col, Typography, Button, Divider } from 'antd';
+import React, { useContext, useState } from 'react';
+import { Button, Col, Divider, Row, Typography } from 'antd';
 import { CloseCircleOutlined, RightOutlined } from '@ant-design/icons';
 import { useHideMenu } from '../hooks/useHideMenu';
 import { getUsuarioStorage } from '../helpers/getUsuarioStorage';
 import { Redirect, useHistory } from 'react-router-dom';
+import { SocketContext } from '../context/SocketContext';
 
-const {Title, Text} = Typography;
-
-
+const { Title, Text } = Typography;
 
 export const Escritorio = () => {
 
-  useHideMenu(false);
+    useHideMenu( false );
+
   const [usuario] = useState(getUsuarioStorage());
-  const history = useHistory();
+  const { socket } = useContext(SocketContext);
+  const [ticket, setTicket] = useState(null);
+    const history = useHistory();
 
-  const salir = () => {
-    localStorage.removeItem('agente');
-    localStorage.removeItem('escritorio');
-    // regresa a la página anterior
-    history.replace('/ingresar');
+    const salir = () =>{
+        localStorage.removeItem('agente');
+        localStorage.removeItem('escritorio');
 
-  }
+        history.replace('/ingresar');
+    }
   const siguienteTicket = () => {
-    console.log('siguienteTicket');
+    socket.emit('siguiente-ticket-trabajar', usuario, (ticket) => {
+      // dispararemos este callback cuando tengamos este ticket asignado
+      setTicket(ticket);
+    });
   }
+    if ( !usuario.agente || !usuario.escritorio) {
+        return <Redirect to="/ingresar" />
+    }
+    return (
+        <>
+            <Row>
+                <Col span={20}>
+                    <Title level={2}>{ usuario.agente }</Title>
+                    <Text>Usted está trabajando en el escritorio : </Text>
+                    <Text type="success">{ usuario.escritorio}</Text>
+                </Col>
 
-  // redirigir en caso de que cualquiera de estos dos no exista
-  if ( !usuario.agente || !usuario.escritorio) {
-    return <Redirect to="/ingresar" />
-  }
+                <Col span={ 4 } align="right" >
+                    <Button
+                        shape="round"
+                        type="danger"
+                        onClick={ salir }
+                    >
+                        Salir
+                        <CloseCircleOutlined />
+                    </Button>
+                </Col>
+            </Row>
 
-  return (
-  <>
-  <Row>
-    <Col span={20}>
-      <Title level={2}>{usuario.agente}</Title>
-      <Text>Usted está trabajando en el escritorio: </Text>
-      <Text type="success">{ usuario.escritorio }</Text>
-    </Col>
+            <Divider />
+            {
+                ticket && (
+                    <Row>
+                        <Col>
+                            <Text>Está atendiendo el ticket número : </Text>
+                            <Text
+                                style={{ fontSize: 30 }}
+                                type="danger">
+                                {ticket.numero}
+                            </Text>
+                        </Col>
+                    </Row>
+                )
+            }
+        
 
-    <Col span={4} align={4} >
-        <Button
-          shape="round"
-          type="danger"
-          onClick={salir}
-        >
-          <CloseCircleOutlined />
-        </Button>
-    </Col>
-  </Row>
+            <Row>
+                <Col offset={ 18 } span={ 6 } align="right">
+                    <Button
+                        onClick={ siguienteTicket }
+                        type="primary"
+                    >
+                        Siguiente
+                        <RightOutlined />
 
-    <Divider />
-
-    <Row>
-      <Col>
-        <Text>Está atendiendo el ticket número: </Text>
-        <Text 
-            style={{ fontSize:30 }} 
-            type="danger">
-              55
-        </Text>
-      </Col>
-    </Row>
-
-    <Row>
-      <Col
-        offset={18}
-        span={ 6 }
-        align="right"
-      >
-        <Button
-            onClick={siguienteTicket}
-            shape="round"
-            type="primary"
-        >
-          <RightOutlined />
-          Siguiente
-        </Button>
-
-      </Col>
-    </Row>
-
-
-  </>
-  )
+                    </Button>
+                </Col>
+            </Row>
+        </>
+    )
 }
